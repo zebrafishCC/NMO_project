@@ -1,0 +1,16 @@
+#/bin/bash!
+
+#quality filtering
+for i in $(seq 1 12)
+do
+    fastp -i V350051171_${i}_1.fq.gz -I V350051171_${i}_2.fq.gz -o V350051171_${i}_1.filter.fq.gz -O V350051171_${i}_2.filter.fq.gz -j GEO_seq_${i}.json -h GEO_seq_${i}.html
+done
+echo "Fastp finished"
+
+for i in $(seq 1 12)
+do
+    rm V350051171_${i}_1.fq.gz
+    rm V350051171_${i}_2.fq.gz
+done
+echo "Removal finished"
+

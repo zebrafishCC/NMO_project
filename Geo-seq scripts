@@ -1,5 +1,26 @@
 #/bin/bash!
 
+
+#data from LMS GEO-seq projects, 12 samples
+
+#merge reads from two lanes
+#for i in $(seq 1 12)
+#do
+#    cat V350051171_L01_${i}_1.fq.gz V350051171_L02_${i}_1.fq.gz > V350051171_${i}_1.fq.gz
+#    cat V350051171_L01_${i}_2.fq.gz V350051171_L02_${i}_2.fq.gz > V350051171_${i}_2.fq.gz
+#done
+#echo "Merging Finished"
+
+for i in $(seq 1 12)
+do
+    rm V350051171_L01_${i}_1.fq.gz
+    rm V350051171_L01_${i}_2.fq.gz
+    rm V350051171_L02_${i}_1.fq.gz
+    rm V350051171_L02_${i}_2.fq.gz
+done
+echo "Removal finished"
+
+
 #quality filtering
 for i in $(seq 1 12)
 do
@@ -13,4 +34,24 @@ do
     rm V350051171_${i}_2.fq.gz
 done
 echo "Removal finished"
+
+#STAR alignment
+for i in $(seq 1 12)
+do
+    STAR --runThreadN 16 --runMode alignReads --genomeLoad LoadAndKeep --limitBAMsortRAM 64000000000  --readFilesCommand zcat --outSAMtype BAM SortedByCoordinate --genomeDir ../refdata-gex-GRCh38-2020-A/star --outFileNamePrefix ./alignment_results/sample_${i} --readFilesIn V350051171_${i}_1.filter.fq.gz V350051171_${i}_2.filter.fq.gz
+done
+echo "Alignment finished"
+
+#extract gene counts from bam files
+featureCounts -T 1 -p -t exon -g gene_id -a ~/data/refdata-gex-GRCh38-2020-A/star/genes.gtf -o featurecounts_allsamples.txt ./alignment_results/*.sortedByCoord.out.bam
+featureCounts -T 1 -p -t exon -g gene_name -a ~/data/refdata-gex-GRCh38-2020-A/star/genes.gtf -o featurecounts_gene_allsamples.txt ./alignment_results/*.sortedByCoord.out.bam
+
+sed '1d' featurecounts_gene_allsamples.txt | cut -f 1,7,8,9,10,11,12,13,14,15,16,17,18 | sed '1s/\.\/alignment_results\/sample_/sample/g' | sed '1s/Aligned.sortedByCoord.out.bam//g' > featurecounts_gene_counts.tsv
+
+#get fpkm counts
+for i in $(seq 1 12)
+do
+    stringtie  ./alignment_results/sample_${i}Aligned.sortedByCoord.out.bam  -G ~/data/refdata-gex-GRCh38-2020-A/star/genes.gtf -e -A ./FPKM_counts/sample_${i}_fpkm.txt
+done
+echo "Counting finshed"
 
